@@ -11,8 +11,10 @@ class sphere : public hittable {
 public:
     point3 center;
     double rad;
+    shared_ptr<material> mat;
+
     sphere() = default;
-    sphere(point3 c, double r) : center(c), rad(r) {}
+    sphere(point3 c, double r, shared_ptr<material> m) : center(c), rad(r), mat(m) {}
     bool hit(const ray& r, double t_min, double t_max, hit_record& rec) const override {
         // Surface of the sphere is (P-C) * (P-C) - r*r = 0
         // P = O + D*t where O is the ray origin and D is the direction
@@ -39,6 +41,7 @@ public:
         rec.p = r.at(rec.t);
         vec3 outward_normal = (rec.p-center)/rad;
         rec.set_face_normal(r, outward_normal);
+        rec.mat_ptr = mat;
         return true;
     }
 };

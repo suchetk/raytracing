@@ -1,9 +1,10 @@
 #include "common.h"
 #include "camera.h"
+#include "material.h"
 
 const int WIDTH = 1080;
-const int SAMPLES = 100;
-const int MAX_DEPTH = 50;
+const int SAMPLES = 25;
+const int MAX_DEPTH = 25;
 
 const color WHITE = color(1, 1, 1);
 const color YELLOW = color(1, 1, 0);
@@ -15,8 +16,14 @@ color ray_color(const ray& r, const hittable& objects, int depth) {
 
     hit_record rec;
     if (objects.hit(r, 0.001, infinity, rec)) {
-        point3 target = rec.p + rec.normal + random_unit_vector();
-        return 0.5 * ray_color(ray(rec.p, target-rec.p), objects, depth-1);
+        ray scattered;
+        color attenuation;
+        if (rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
+            return attenuation * ray_color(scattered, objects, depth-1);
+        }
+        return BLACK;
+        // point3 target = rec.p + rec.normal + random_unit_vector();
+        // return 0.5 * ray_color(ray(rec.p, target-rec.p), objects, depth-1);
     }
 
     // draw the background
@@ -33,8 +40,15 @@ int main() {
 
     // OBJECTS
     hittable_list objects;
-    objects.add(make_shared<sphere>(point3(0,0,-1), 0.5));
-    objects.add(make_shared<sphere>(point3(1, -500.5, -1), 500));
+    auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
+    auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
+    auto material_left   = make_shared<metal>(color(0.8, 0.8, 0.8));
+    auto material_right  = make_shared<metal>(color(0.8, 0.6, 0.2));
+
+    objects.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
+    objects.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
+    objects.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
+    objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
 
 	// CAMERA
     camera cam;

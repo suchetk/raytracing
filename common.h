@@ -45,7 +45,7 @@ inline double degrees_to_radians(double degrees) {
 }
 
 // Common Headers
-
+// indirectly includes vec.h, hittable.h
 #include "ray.h"
 #include "hittable_list.h"
 #include "sphere.h"

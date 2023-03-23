@@ -2,9 +2,9 @@
 #include "camera.h"
 #include "material.h"
 
-const int WIDTH = 720;
+const int WIDTH = 1000;
 const int SAMPLES = 50;
-const int MAX_DEPTH = 25;
+const int MAX_DEPTH = 10;
 const double aspect_ratio = 16.0/9.0;
 
 const color WHITE = color(1, 1, 1);
@@ -57,7 +57,10 @@ int main() {
     objects.add(make_shared<sphere>(point3( 1.5,    0.0, -1.0-sqrt(3)/2),   0.5, material_last));
 
 	// CAMERA
-    camera cam(point3(-2,2,1), point3(0,0,-1), vec3(0,1,0), 75, aspect_ratio);
+    point3 lookfrom(1,1,2.5);
+    point3 lookat(1,0,-1);
+    auto dist_to_focus = (lookfrom-lookat).length();
+    camera cam(lookfrom, lookat, vec3(0,1,0), 50, aspect_ratio, 0.1, dist_to_focus);
 
 	// RENDERING
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";

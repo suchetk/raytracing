@@ -2,9 +2,10 @@
 #include "camera.h"
 #include "material.h"
 
-const int WIDTH = 1080;
-const int SAMPLES = 25;
+const int WIDTH = 720;
+const int SAMPLES = 50;
 const int MAX_DEPTH = 25;
+const double aspect_ratio = 16.0/9.0;
 
 const color WHITE = color(1, 1, 1);
 const color YELLOW = color(1, 1, 0);
@@ -44,14 +45,19 @@ int main() {
     auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
     auto material_left   = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
     auto material_right  = make_shared<dielectric>(1.5);
+    auto material_rightmost = make_shared<lambertian>(color(0.6, 0.3, 1.0));
+    auto material_last = make_shared<metal>(color(0.2, 0.9, 0.8), 0.1);
 
     objects.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
     objects.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
     objects.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
     objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
+    objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   -0.45, material_right));
+    objects.add(make_shared<sphere>(point3( 2.0,    0.0, -1.0),   0.5, material_rightmost));
+    objects.add(make_shared<sphere>(point3( 1.5,    0.0, -1.0-sqrt(3)/2),   0.5, material_last));
 
 	// CAMERA
-    camera cam;
+    camera cam(point3(-2,2,1), point3(0,0,-1), vec3(0,1,0), 75, aspect_ratio);
 
 	// RENDERING
 	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";

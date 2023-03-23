@@ -14,21 +14,31 @@ private:
     vec3 horizontal;
     vec3 vertical;
 public:
-    camera() {
-        auto view_height = 2.0;
+    camera(
+        point3 look_from,
+        point3 look_at,
+        vec3 vup,
+        double vfov, 
+        double aspect_ratio
+        ) {
+        auto theta = degrees_to_radians(vfov);
+        auto h = tan(theta/2);
+        auto view_height = 2.0 * h;
         auto view_width = aspect_ratio * view_height;
-        auto focal_length = 1.0;
 
-        origin = point3(0, 0, 0);
-        horizontal = vec3(view_width, 0, 0);
-        vertical = vec3(0, view_height, 0);
-        auto depth = vec3(0, 0, focal_length);
-        lower_left = origin - horizontal/2 - vertical/2 - depth;
+        auto w = unit_vector(look_from - look_at);
+        auto u = unit_vector(cross(vup, w));
+        auto v = cross(w, u);
+
+        origin = look_from;
+        horizontal = view_width * u;
+        vertical = view_height * v;
+        lower_left = origin - horizontal/2 - vertical/2 - w;
     }
 
     // origin is the camera position, each ray calculates a pixel of the view pane
-    ray get_ray(double u, double v) const {
-        return ray(origin, lower_left + u*horizontal + v*vertical - origin);
+    ray get_ray(double s, double t) const {
+        return ray(origin, lower_left + s*horizontal + t*vertical - origin);
     }
 };
 

@@ -4,15 +4,21 @@
 #include "window.h"
 #include <chrono>
 
-const int WIDTH = 1200;
 // const int SAMPLES = 1;
 const int MAX_DEPTH = 10;
 const double aspect_ratio = 16.0/9.0;
+const int WIDTH = 1200;
+const int HEIGHT = static_cast<int>(WIDTH / aspect_ratio);
 
 const color WHITE = color(1, 1, 1);
 const color YELLOW = color(1, 1, 0);
 const color SKY_BLUE = color(0.5, 0.7, 1.0);
 const color BLACK = color(0,0,0);
+
+// array of pixels
+const int pix_arr_size = WIDTH * HEIGHT * 3;
+uint8_t render_pixels[pix_arr_size];
+double pixel_sums[pix_arr_size];
 
 color ray_color(const ray& r, const hittable& objects, int depth) {
     if (depth <= 0) return BLACK;
@@ -25,28 +31,34 @@ color ray_color(const ray& r, const hittable& objects, int depth) {
             return attenuation * ray_color(scattered, objects, depth-1);
         }
         return BLACK;
-        // point3 target = rec.p + rec.normal + random_unit_vector();
-        // return 0.5 * ray_color(ray(rec.p, target-rec.p), objects, depth-1);
     }
-
     // draw the background
 	vec3 unit_direction = unit_vector(r.direction());
 	auto y_linear = 0.5 * (unit_direction.y() + 1.0);
 	return (1.0 - y_linear)*WHITE + y_linear*SKY_BLUE;
 }
 
+void render(hittable_list& objects, camera& cam, int& sample) {
+    auto start = std::chrono::steady_clock::now();
+    for (int j = HEIGHT-1; j >= 0; --j) {
+    	for (int i = 0; i < WIDTH; ++i) {
+            auto u = (i + random_double())/(WIDTH-1);
+            auto v = (j + random_double())/(HEIGHT-1);
+            ray r = cam.get_ray(u,v);
+            color pixel = ray_color(r, objects, MAX_DEPTH);
+            write_color(render_pixels, pixel_sums, pixel, (i + j*WIDTH)*3, sample);
+    	}
+	}
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "Time to render sample: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "[ms]" << std::endl;
+}
+
 
 int main() {
-	// IMAGE DIMENSIONS
-	const int image_width = WIDTH;
-	const int image_height = static_cast<int>(image_width / aspect_ratio);
-
     // CREATE WINDOW
-    window win(image_width, image_height);
-    // array of pixels
-    int pix_arr_size = image_width * image_height * 3;
-    uint8_t pixels[pix_arr_size];
-    memset(pixels, 0, pix_arr_size);
+    window win(WIDTH, HEIGHT);
+    memset(render_pixels, 0, pix_arr_size);
+    memset(pixel_sums, 0, pix_arr_size);
 
     // OBJECTS
     hittable_list objects;
@@ -69,25 +81,14 @@ int main() {
     point3 lookfrom(1,1,2.5);
     point3 lookat(1,0,-1);
     auto dist_to_focus = (lookfrom-lookat).length();
-    camera cam(lookfrom, lookat, vec3(0,1,0), 50, aspect_ratio, 0.1, dist_to_focus);
+    double aperture = 0;
+    camera cam(lookfrom, lookat, vec3(0,1,0), 50, aspect_ratio, aperture, dist_to_focus);
 
 	// RENDERING
-    auto start = std::chrono::steady_clock::now();
-    for (int j = image_height-1; j >= 0; --j) {
-    	for (int i = 0; i < image_width; ++i) {
-            auto u = (i + random_double())/(image_width-1);
-            auto v = (j + random_double())/(image_height-1);
-            ray r = cam.get_ray(u,v);
-            color pixel = ray_color(r, objects, MAX_DEPTH);
-            write_color(pixels, pixel, (i + j*image_width)*3);
-    	}
-	}
-    auto end = std::chrono::steady_clock::now();
-    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "[ms]" << std::endl;
-
-
-    win.update(pixels);
-
+    int sample = 1;
+    render(objects, cam, sample);
+    win.update(render_pixels);
+    
     //Event handler
     SDL_Event e;
 
@@ -95,8 +96,7 @@ int main() {
     while( !quit )
     {
         //Handle events on queue
-        while( SDL_PollEvent( &e ) != 0 ) // poll for event
-        {
+        if ( SDL_PollEvent( &e ) != 0 ) {
             //User requests quit
             if( e.type == SDL_QUIT ) // unless player manually quits
             {
@@ -105,6 +105,9 @@ int main() {
                 std::cout << e.key.keysym.sym << std::endl;
             }
         }
+        sample++;
+        render(objects, cam, sample);
+        win.update(render_pixels);
     }
 
     win.shutdown();

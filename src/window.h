@@ -48,7 +48,7 @@ public:
     }
 
     void shutdown() {
-        SDL_Log("Closing window");
+        SDL_Log("Closing Window");
         SDL_DestroyRenderer(ren);
         SDL_DestroyWindow(win);
         SDL_DestroyTexture(texture);

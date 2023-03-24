@@ -1,10 +1,11 @@
 #include "common.h"
 #include "camera.h"
 #include "material.h"
-#include <SDL2/SDL.h>
+#include "window.h"
+#include <chrono>
 
-const int WIDTH = 500;
-const int SAMPLES = 50;
+const int WIDTH = 1200;
+// const int SAMPLES = 1;
 const int MAX_DEPTH = 10;
 const double aspect_ratio = 16.0/9.0;
 
@@ -41,33 +42,15 @@ int main() {
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
 
     // CREATE WINDOW
-    if(SDL_Init(SDL_INIT_VIDEO) < 0)
-    {
-        std::cout << "Failed to initialize the SDL2 library\n";
-        return -1;
-    }
-    SDL_Window* window = SDL_CreateWindow("Ray Tracer", 0, 0, image_width,image_height, 0);
-        if(!window)
-    {
-        std::cout << "Failed to create window\n";
-        return -1;
-    }
-
-    SDL_Surface *window_surface = SDL_GetWindowSurface(window);
-
-    if(!window_surface)
-    {
-        std::cout << "Failed to get the surface from the window\n";
-        return -1;
-    }
-
-    SDL_UpdateWindowSurface(window);
-
-    SDL_Delay(5000);
+    window win(image_width, image_height);
+    // array of pixels
+    int pix_arr_size = image_width * image_height * 3;
+    uint8_t pixels[pix_arr_size];
+    memset(pixels, 0, pix_arr_size);
 
     // OBJECTS
     hittable_list objects;
-    auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.0));
+    auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.1));
     auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
     auto material_left   = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
     auto material_right  = make_shared<dielectric>(1.5);
@@ -89,18 +72,40 @@ int main() {
     camera cam(lookfrom, lookat, vec3(0,1,0), 50, aspect_ratio, 0.1, dist_to_focus);
 
 	// RENDERING
-	std::cout << "P3\n" << image_width << ' ' << image_height << "\n255\n";
-	for (int j = image_height-1; j >= 0; --j) {
-        std::cerr << image_height - j << " of " << image_height <<"\n";
-		for (int i = 0; i < image_width; ++i) {
-            color pixel(0,0,0);
-            for (int s = 0; s < SAMPLES; ++s) {
-                auto u = (i + random_double())/(image_width-1);
-                auto v = (j + random_double())/(image_height-1);
-                ray r = cam.get_ray(u,v);
-                pixel += ray_color(r, objects, MAX_DEPTH);
-            }
-            write_color(std::cout, pixel, SAMPLES);
-		}
+    auto start = std::chrono::steady_clock::now();
+    for (int j = image_height-1; j >= 0; --j) {
+    	for (int i = 0; i < image_width; ++i) {
+            auto u = (i + random_double())/(image_width-1);
+            auto v = (j + random_double())/(image_height-1);
+            ray r = cam.get_ray(u,v);
+            color pixel = ray_color(r, objects, MAX_DEPTH);
+            write_color(pixels, pixel, (i + j*image_width)*3);
+    	}
 	}
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "Time difference = " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "[ms]" << std::endl;
+
+
+    win.update(pixels);
+
+    //Event handler
+    SDL_Event e;
+
+    bool quit = false;
+    while( !quit )
+    {
+        //Handle events on queue
+        while( SDL_PollEvent( &e ) != 0 ) // poll for event
+        {
+            //User requests quit
+            if( e.type == SDL_QUIT ) // unless player manually quits
+            {
+                quit = true;
+            } else if (e.type == SDL_KEYDOWN) {
+                std::cout << e.key.keysym.sym << std::endl;
+            }
+        }
+    }
+
+    win.shutdown();
 }

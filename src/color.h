@@ -22,4 +22,14 @@ void write_color(std::ostream &out, color pixel_color, int samples) {
 		<< static_cast<int>(256 * clamp(g, 0.0, 0.999)) << ' '
 		<< static_cast<int>(256 * clamp(b, 0.0, 0.999)) << '\n';
 } 
+
+void write_color(uint8_t* pixel_arr, color& pixel_color, int start) {
+    auto r = pixel_color.x();
+    auto g = pixel_color.y();
+    auto b = pixel_color.z();
+    pixel_arr[start] = static_cast<int>(256 * clamp(r, 0.0, 0.999));
+    pixel_arr[start+1] = static_cast<int>(256 * clamp(g, 0.0, 0.999));
+    pixel_arr[start+2] = static_cast<int>(256 * clamp(b, 0.0, 0.999));
+}
+
 #endif

@@ -1,8 +1,9 @@
 #include "common.h"
 #include "camera.h"
 #include "material.h"
+#include <SDL2/SDL.h>
 
-const int WIDTH = 1000;
+const int WIDTH = 500;
 const int SAMPLES = 50;
 const int MAX_DEPTH = 10;
 const double aspect_ratio = 16.0/9.0;
@@ -38,6 +39,31 @@ int main() {
 	// IMAGE DIMENSIONS
 	const int image_width = WIDTH;
 	const int image_height = static_cast<int>(image_width / aspect_ratio);
+
+    // CREATE WINDOW
+    if(SDL_Init(SDL_INIT_VIDEO) < 0)
+    {
+        std::cout << "Failed to initialize the SDL2 library\n";
+        return -1;
+    }
+    SDL_Window* window = SDL_CreateWindow("Ray Tracer", 0, 0, image_width,image_height, 0);
+        if(!window)
+    {
+        std::cout << "Failed to create window\n";
+        return -1;
+    }
+
+    SDL_Surface *window_surface = SDL_GetWindowSurface(window);
+
+    if(!window_surface)
+    {
+        std::cout << "Failed to get the surface from the window\n";
+        return -1;
+    }
+
+    SDL_UpdateWindowSurface(window);
+
+    SDL_Delay(5000);
 
     // OBJECTS
     hittable_list objects;

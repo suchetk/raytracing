@@ -10,6 +10,7 @@
 class material {
 public:
     virtual bool scatter(const ray& r, const hit_record& rec, color& attenuation, ray& scattered) const = 0;
+    virtual bool emanate(color& attenuation) const = 0;
 };
 
 class lambertian : public material {
@@ -25,6 +26,8 @@ public:
         attenuation = albedo;
         return true;
     }
+
+    virtual bool emanate(color& attenuation) const override { return false; }
 };
 
 class metal : public material {
@@ -40,6 +43,8 @@ public:
         attenuation = albedo;
         return (dot(scattered.direction(), rec.normal) > 0);
     }
+
+    virtual bool emanate(color& attenuation) const override { return false; }
 };
 
 class dielectric : public material {
@@ -72,6 +77,22 @@ public:
 
         scattered = ray(rec.p, direction);
         return true;
+    }
+
+    virtual bool emanate(color& attenuation) const override { return false; }
+};
+
+class light : public material {
+public:
+    color albedo;
+    light(const color& a) : albedo(a) {}
+    virtual bool scatter(const ray& r, const hit_record& rec, color& attenuation, ray& scattered) const override {
+        return false;
+    }
+
+    virtual bool emanate(color& attenuation) const override { 
+        attenuation = albedo;
+        return true; 
     }
 };
 

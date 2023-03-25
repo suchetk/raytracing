@@ -7,13 +7,15 @@
 // const int SAMPLES = 1;
 const int MAX_DEPTH = 10;
 const double aspect_ratio = 16.0/9.0;
-const int WIDTH = 1500;
+const int WIDTH = 1000;
 const int HEIGHT = static_cast<int>(WIDTH / aspect_ratio);
 
 const color WHITE = color(1, 1, 1);
 const color YELLOW = color(1, 1, 0);
 const color SKY_BLUE = color(0.5, 0.7, 1.0);
 const color BLACK = color(0,0,0);
+const color BLUE = color(0,0,0.5);
+const color GREY = color(0.3, 0.3, 0.3);
 
 // array of pixels
 const int pix_arr_size = WIDTH * HEIGHT * 3;
@@ -29,13 +31,16 @@ color ray_color(const ray& r, const hittable& objects, int depth) {
         color attenuation;
         if (rec.mat_ptr->scatter(r, rec, attenuation, scattered)) {
             return attenuation * ray_color(scattered, objects, depth-1);
+        } else if (rec.mat_ptr->emanate(attenuation)) {
+            return attenuation;
         }
         return BLACK;
     }
     // draw the background
+    return GREY;
 	vec3 unit_direction = unit_vector(r.direction());
 	auto y_linear = 0.5 * (unit_direction.y() + 1.0);
-	return (1.0 - y_linear)*WHITE + y_linear*SKY_BLUE;
+	return (1.0 - y_linear)*BLACK + y_linear*SKY_BLUE;
 }
 
 void render(hittable_list& objects, camera& cam, int& sample) {
@@ -51,9 +56,40 @@ void render(hittable_list& objects, camera& cam, int& sample) {
     	}
 	}
     auto end = std::chrono::steady_clock::now();
-    std::cout << "Time to render sample: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << "[ms]" << std::endl;
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "Sample " << sample << ": " << elapsed << "ms" << std::endl;
 }
 
+vec3 parse_key(SDL_Keycode sym) {
+    vec3 vec;
+    switch (sym) {
+        case SDLK_RIGHT:
+            std::cout << "right" << std::endl;
+            vec = vec3(1,0,0);
+            break;
+        case SDLK_LEFT:
+            std::cout << "left" << std::endl;
+            vec = vec3(-1,0,0);
+            break;
+        case SDLK_UP:
+            std::cout << "up" << std::endl;
+            vec = vec3(0,1,0);
+            break;
+        case SDLK_DOWN:
+            std::cout << "down" << std::endl;
+            vec = vec3(0,-1,0);
+            break;
+        case SDLK_e:
+            std::cout << "forward" << std::endl;
+            vec = vec3(0,0,-1);
+            break;
+        case SDLK_d:
+            std::cout << "back" << std::endl;
+            vec = vec3(0,0,1);
+            break;
+    }
+    return vec;
+}
 
 int main() {
     // CREATE WINDOW
@@ -69,8 +105,10 @@ int main() {
     auto material_right  = make_shared<dielectric>(1.5);
     auto material_rightmost = make_shared<lambertian>(color(0.6, 0.3, 1.0));
     auto material_last = make_shared<metal>(color(0.2, 0.9, 0.8), 0.1);
+    auto material_light = make_shared<light>(color(1,1,1));
 
     objects.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
+    objects.add(make_shared<sphere>(point3( 0.0, 10, -1.0), 5.0, material_light));
     objects.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
     objects.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
     objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
@@ -83,9 +121,8 @@ int main() {
     point3 lookfrom(-2,2,1);
     // point3 lookat(1,0,-1);
     point3 lookat(0,0,-1);
-    auto dist_to_focus = (lookfrom-lookat).length();
-    double aperture = 0.1;
-    camera cam(lookfrom, lookat, vec3(0,1,0), 50, aspect_ratio, aperture, dist_to_focus);
+    double aperture = 0;
+    camera cam(lookfrom, lookat, vec3(0,1,0), 50, aspect_ratio, aperture);
 
     int sample = 1;
 
@@ -101,23 +138,16 @@ int main() {
 
         //Handle events on queue
         while ( SDL_PollEvent( &e ) != 0 ) {
-            if( e.type == SDL_QUIT )
+            if( e.type == SDL_QUIT || e.key.keysym.sym == SDLK_ESCAPE)
             {
                 quit = true;
             } else if (e.type == SDL_KEYDOWN) {
-                switch (e.key.keysym.sym) {
-                    case SDLK_RIGHT:
-                        std::cout << "right" << std::endl;
-                        break;
-                    case SDLK_LEFT:
-                        std::cout << "left" << std::endl;
-                        break;
-                    case SDLK_UP:
-                        std::cout << "up" << std::endl;
-                        break;
-                    case SDLK_DOWN:
-                        std::cout << "down" << std::endl;
-                        break;
+                vec3 vec = parse_key(e.key.keysym.sym);
+                if (vec.length_squared() > 0) {
+                    cam.move(vec);
+                    memset(render_pixels, 0, pix_arr_size);
+                    memset(pixel_avg, 0, pix_arr_size);
+                    sample = 1;
                 }
             }
         }

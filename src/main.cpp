@@ -7,7 +7,7 @@
 // const int SAMPLES = 1;
 const int MAX_DEPTH = 10;
 const double aspect_ratio = 16.0/9.0;
-const int WIDTH = 1200;
+const int WIDTH = 1500;
 const int HEIGHT = static_cast<int>(WIDTH / aspect_ratio);
 
 const color WHITE = color(1, 1, 1);
@@ -18,7 +18,7 @@ const color BLACK = color(0,0,0);
 // array of pixels
 const int pix_arr_size = WIDTH * HEIGHT * 3;
 uint8_t render_pixels[pix_arr_size];
-double pixel_sums[pix_arr_size];
+double pixel_avg[pix_arr_size];
 
 color ray_color(const ray& r, const hittable& objects, int depth) {
     if (depth <= 0) return BLACK;
@@ -46,7 +46,8 @@ void render(hittable_list& objects, camera& cam, int& sample) {
             auto v = (j + random_double())/(HEIGHT-1);
             ray r = cam.get_ray(u,v);
             color pixel = ray_color(r, objects, MAX_DEPTH);
-            write_color(render_pixels, pixel_sums, pixel, (i + j*WIDTH)*3, sample);
+            int start_position = (i + j*WIDTH)*3;
+            write_color(render_pixels, pixel_avg, pixel, start_position, sample);
     	}
 	}
     auto end = std::chrono::steady_clock::now();
@@ -58,7 +59,7 @@ int main() {
     // CREATE WINDOW
     window win(WIDTH, HEIGHT);
     memset(render_pixels, 0, pix_arr_size);
-    memset(pixel_sums, 0, pix_arr_size);
+    memset(pixel_avg, 0, pix_arr_size);
 
     // OBJECTS
     hittable_list objects;
@@ -78,37 +79,49 @@ int main() {
     objects.add(make_shared<sphere>(point3( 1.5,    0.0, -1.0-sqrt(3)/2),   0.5, material_last));
 
 	// CAMERA
-    point3 lookfrom(1,1,2.5);
-    point3 lookat(1,0,-1);
+    // point3 lookfrom(1,1,2.5);
+    point3 lookfrom(-2,2,1);
+    // point3 lookat(1,0,-1);
+    point3 lookat(0,0,-1);
     auto dist_to_focus = (lookfrom-lookat).length();
-    double aperture = 0;
+    double aperture = 0.1;
     camera cam(lookfrom, lookat, vec3(0,1,0), 50, aspect_ratio, aperture, dist_to_focus);
 
-	// RENDERING
     int sample = 1;
-    render(objects, cam, sample);
-    win.update(render_pixels);
-    
+
     //Event handler
     SDL_Event e;
 
     bool quit = false;
     while( !quit )
     {
+        render(objects, cam, sample);
+        win.update(render_pixels);
+        sample++;
+
         //Handle events on queue
-        if ( SDL_PollEvent( &e ) != 0 ) {
-            //User requests quit
-            if( e.type == SDL_QUIT ) // unless player manually quits
+        while ( SDL_PollEvent( &e ) != 0 ) {
+            if( e.type == SDL_QUIT )
             {
                 quit = true;
             } else if (e.type == SDL_KEYDOWN) {
-                std::cout << e.key.keysym.sym << std::endl;
+                switch (e.key.keysym.sym) {
+                    case SDLK_RIGHT:
+                        std::cout << "right" << std::endl;
+                        break;
+                    case SDLK_LEFT:
+                        std::cout << "left" << std::endl;
+                        break;
+                    case SDLK_UP:
+                        std::cout << "up" << std::endl;
+                        break;
+                    case SDLK_DOWN:
+                        std::cout << "down" << std::endl;
+                        break;
+                }
             }
         }
-        sample++;
-        render(objects, cam, sample);
-        win.update(render_pixels);
+        
     }
-
     win.shutdown();
 }

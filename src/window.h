@@ -30,6 +30,7 @@ public:
             SDL_Log("Unable to create texture: %s", SDL_GetError());
             exit(1);
         }
+        SDL_RaiseWindow(win);
     }
 
     void update(uint8_t* pixel_arr) {

@@ -125,6 +125,7 @@ inline vec3 unit_vector(vec3 v) {
 }
 
 // random vec in unit sphere
+// TODO generate one time with random radius, theta, phi
 inline vec3 random_in_unit_sphere() {
     while (true) {
         auto p = vec3::random(-1,1);
@@ -149,11 +150,9 @@ inline vec3 refract(const vec3& uv, const vec3& n, double etai_over_etat) {
 }
 
 inline vec3 random_in_unit_disk() {
-    while (true) {
-        auto p = vec3(random_double(-1,1), random_double(-1,1), 0);
-        if (p.length_squared() >= 1) continue;
-        return p;
-    }
+    auto theta = random_double()*2*pi;
+    auto p = vec3(cos(theta), sin(theta), 0);
+    return p;
 }
 
 #endif

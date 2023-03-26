@@ -2,7 +2,9 @@
 #include "camera.h"
 #include "material.h"
 #include "window.h"
+#include "threadpool.h"
 #include <chrono>
+#include <unistd.h>
 
 // const int SAMPLES = 1;
 const int MAX_DEPTH = 10;
@@ -15,7 +17,7 @@ const color YELLOW = color(1, 1, 0);
 const color SKY_BLUE = color(0.5, 0.7, 1.0);
 const color BLACK = color(0,0,0);
 const color BLUE = color(0,0,0.5);
-const color GREY = color(0.3, 0.3, 0.3);
+const color DARK_BLUE = color(0, 0, 0.4);
 
 // array of pixels
 const int pix_arr_size = WIDTH * HEIGHT * 3;
@@ -34,13 +36,12 @@ color ray_color(const ray& r, const hittable& objects, int depth) {
         } else if (rec.mat_ptr->emanate(attenuation)) {
             return attenuation;
         }
-        return BLACK;
     }
     // draw the background
-    return GREY;
+    return BLACK;
 	vec3 unit_direction = unit_vector(r.direction());
 	auto y_linear = 0.5 * (unit_direction.y() + 1.0);
-	return (1.0 - y_linear)*BLACK + y_linear*SKY_BLUE;
+	return (1.0 - y_linear)*DARK_BLUE + y_linear*SKY_BLUE;
 }
 
 void render(hittable_list& objects, camera& cam, int& sample) {
@@ -55,6 +56,51 @@ void render(hittable_list& objects, camera& cam, int& sample) {
             write_color(render_pixels, pixel_avg, pixel, start_position, sample);
     	}
 	}
+    auto end = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
+    std::cout << "Sample " << sample << ": " << elapsed << "ms" << std::endl;
+}
+
+class threadJob {
+
+public:
+    int i;
+    int j;
+    hittable_list objects;
+    camera cam;
+    int sample;
+    threadJob(int& x, int& y, hittable_list& objs, camera& camera, int& sam) : i(x), j(y), objects(objs), cam(camera), sample(sam) {}
+    
+    void operator()() {
+        auto u = (i + random_double())/(WIDTH-1);
+        auto v = (j + random_double())/(HEIGHT-1);
+        ray r = cam.get_ray(u,v);
+        color pixel = ray_color(r, objects, MAX_DEPTH);
+        int start_position = (i + j*WIDTH)*3;
+        write_color(render_pixels, pixel_avg, pixel, start_position, sample);
+        // std::cout << "job done\n";
+    }
+};
+
+
+void thread_Job(int& i, int& j, hittable_list& objects, camera& cam, int& sample) {
+    auto u = (i + random_double())/(WIDTH-1);
+    auto v = (j + random_double())/(HEIGHT-1);
+    ray r = cam.get_ray(u,v);
+    color pixel = ray_color(r, objects, MAX_DEPTH);
+    int start_position = (i + j*WIDTH)*3;
+    write_color(render_pixels, pixel_avg, pixel, start_position, sample);
+}
+
+void concurrent_render(threadPool& pool, hittable_list& objects, camera& cam, int& sample) {
+    auto start = std::chrono::steady_clock::now();
+    for (int j = HEIGHT-1; j >= 0; --j) {
+    	for (int i = 0; i < WIDTH; ++i) {
+            threadJob job(i, j, objects, cam, sample);
+            pool.queueJob(job);
+    	}
+	}
+    while (pool.busy()) usleep(1000);
     auto end = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count();
     std::cout << "Sample " << sample << ": " << elapsed << "ms" << std::endl;
@@ -92,6 +138,9 @@ vec3 parse_key(SDL_Keycode sym) {
 }
 
 int main() {
+    threadPool pool;
+    // pool.start(4);
+
     // CREATE WINDOW
     window win(WIDTH, HEIGHT);
     memset(render_pixels, 0, pix_arr_size);
@@ -108,7 +157,7 @@ int main() {
     auto material_light = make_shared<light>(color(1,1,1));
 
     objects.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
-    objects.add(make_shared<sphere>(point3( 0.0, 10, -1.0), 5.0, material_light));
+    objects.add(make_shared<sphere>(point3( 5.0, 5.0, 5.0), 5.0, material_light));
     objects.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
     objects.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
     objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
@@ -153,5 +202,8 @@ int main() {
         }
         
     }
+
+    // clean up
     win.shutdown();
+    pool.stop();
 }

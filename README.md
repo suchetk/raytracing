@@ -12,6 +12,13 @@ The shading algorithm loosely follows the [Phong reflection model](https://en.wi
 
 Ran experiments with custom-built ThreadPool to speed up rendering. However, in practice it actually slowed down rendering. This could be due to bad design of the thread jobs.
 
+## Commands to run project
+
+```
+make main
+./ray
+```
+Interactively control camera position with arrow keys to move up/left/down/right and `E` & `D` keys to control depth.
 
 ## Progress Log
 

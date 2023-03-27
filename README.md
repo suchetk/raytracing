@@ -20,6 +20,30 @@ make main
 ```
 Interactively control camera position with arrow keys to move up/left/down/right and `E` & `D` keys to control depth.
 
+Terminal Output:
+```
+(base) MacBook-Pro-2:raytracing suchetkumar$ ./ray
+2023-03-27 17:19:37.313 ray[29377:5750765] INFO: Starting Window
+Sample 1: 963ms
+Sample 2: 976ms
+Sample 3: 942ms
+Sample 4: 921ms
+Sample 5: 927ms
+Sample 6: 904ms
+Sample 7: 903ms
+Sample 8: 936ms
+up                  // camera movement with up-arrow
+Sample 1: 1017ms    // Image rendering starts over after camera movement
+up
+up
+up
+up
+Sample 1: 1358ms
+up
+up
+2023-03-27 17:21:19.943 ray[29377:5750765] INFO: Closing Window     // close window with `ESC` key
+```
+
 ## Progress Log
 
 1. Implemented Spherical objects and light bouncing. The light bounces off these objects with Lambertian diffusion. A random vector in the unit sphere around the normal vector is chosen for bouncing off objects.

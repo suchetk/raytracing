@@ -1,14 +1,14 @@
 # Ray Tracing from Scratch
-
-![](./png/img11.png)
-*(~100 samples/pixel)*
+![](./png/img13.png)
+*(~100 samples/pixel, ray depth = 10)*
 
 Building raytracing engine from scratch, following https://raytracing.github.io/books/RayTracingInOneWeekend.html as a starting point.
 
 This project extends the starter code by implementing real-time rendering and displaying with [SDL](https://www.libsdl.org/) library. Also allows user to control camera position with arrow keys to move up/left/down/right and `E` & `D` keys to control depth.
 
-The shading algorithm loosely follows the [Phong reflection model](https://en.wikipedia.org/wiki/Phong_reflection_model), by multiplying `Color` vectors together when light rays hit surfaces, according to the material. The `Color` vectors are then normalized with gamma correction.
+![](./png/img11.png)
 
+The shading algorithm loosely follows the [Phong reflection model](https://en.wikipedia.org/wiki/Phong_reflection_model), by multiplying `Color` vectors together when light rays hit surfaces, according to the material. The `Color` vectors are then normalized with gamma correction.
 
 Ran experiments with custom-built ThreadPool to speed up rendering. However, in practice it actually slowed down rendering. This could be due to bad design of the thread jobs.
 

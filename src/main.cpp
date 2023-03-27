@@ -6,9 +6,9 @@
 #include <chrono>
 #include <unistd.h>
 
-// const int SAMPLES = 1;
-const int MAX_DEPTH = 10;
-const double aspect_ratio = 16.0/9.0;
+const int SAMPLES = 100;
+const int MAX_DEPTH = 15;
+const double aspect_ratio = 3.0/2.0;
 const int WIDTH = 1000;
 const int HEIGHT = static_cast<int>(WIDTH / aspect_ratio);
 
@@ -38,10 +38,10 @@ color ray_color(const ray& r, const hittable& objects, int depth) {
         }
     }
     // draw the background
-    return BLACK;
+    // return BLACK;
 	vec3 unit_direction = unit_vector(r.direction());
 	auto y_linear = 0.5 * (unit_direction.y() + 1.0);
-	return (1.0 - y_linear)*DARK_BLUE + y_linear*SKY_BLUE;
+	return (1.0 - y_linear)*WHITE + y_linear*SKY_BLUE;
 }
 
 void render(hittable_list& objects, camera& cam, int& sample) {
@@ -137,8 +137,54 @@ vec3 parse_key(SDL_Keycode sym) {
     return vec;
 }
 
+hittable_list random_scene() {
+    hittable_list world;
+
+    auto ground_material = make_shared<lambertian>(color(0.5, 0.5, 0.5));
+    world.add(make_shared<sphere>(point3(0,-1000,0), 1000, ground_material));
+
+    for (int a = -5; a < 5; a++) {
+        for (int b = -5; b < 5; b++) {
+            auto choose_mat = random_double();
+            point3 center(a + 0.9*random_double(), 0.2, b + 0.9*random_double());
+
+            if ((center - point3(4, 0.2, 0)).length() > 0.9) {
+                shared_ptr<material> sphere_material;
+
+                if (choose_mat < 0.6) {
+                    // diffuse
+                    auto albedo = color::random() * color::random();
+                    sphere_material = make_shared<lambertian>(albedo);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                } else if (choose_mat < 0.85) {
+                    // metal
+                    auto albedo = color::random(0.5, 1);
+                    auto fuzz = random_double(0, 0.5);
+                    sphere_material = make_shared<metal>(albedo, fuzz);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                } else {
+                    // glass
+                    sphere_material = make_shared<dielectric>(1.5);
+                    world.add(make_shared<sphere>(center, 0.2, sphere_material));
+                }
+            }
+        }
+    }
+
+    auto material1 = make_shared<dielectric>(1.5);
+    world.add(make_shared<sphere>(point3(0, 1, 0), 1.0, material1));
+
+    auto material2 = make_shared<lambertian>(color(0.4, 0.2, 0.1));
+    world.add(make_shared<sphere>(point3(-4, 1, 0), 1.0, material2));
+
+    auto material3 = make_shared<metal>(color(0.7, 0.6, 0.5), 0.0);
+    world.add(make_shared<sphere>(point3(4, 1, 0), 1.0, material3));
+
+    return world;
+}
+
 int main() {
-    threadPool pool;
+    // threadPool pool;
     // pool.start(4);
 
     // CREATE WINDOW
@@ -146,32 +192,35 @@ int main() {
     memset(render_pixels, 0, pix_arr_size);
     memset(pixel_avg, 0, pix_arr_size);
 
-    // OBJECTS
-    hittable_list objects;
-    auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.1));
-    auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
-    auto material_left   = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
-    auto material_right  = make_shared<dielectric>(1.5);
-    auto material_rightmost = make_shared<lambertian>(color(0.6, 0.3, 1.0));
-    auto material_last = make_shared<metal>(color(0.2, 0.9, 0.8), 0.1);
-    auto material_light = make_shared<light>(color(1,1,1));
+    // // OBJECTS
+    // hittable_list objects;
+    // auto material_ground = make_shared<lambertian>(color(0.8, 0.8, 0.1));
+    // auto material_center = make_shared<lambertian>(color(0.7, 0.3, 0.3));
+    // auto material_left   = make_shared<metal>(color(0.8, 0.8, 0.8), 0.3);
+    // auto material_right  = make_shared<dielectric>(1.5);
+    // auto material_rightmost = make_shared<lambertian>(color(0.6, 0.3, 1.0));
+    // auto material_last = make_shared<metal>(color(0.2, 0.9, 0.8), 0.1);
+    // auto material_light = make_shared<light>(color(1,1,1));
 
-    objects.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
-    objects.add(make_shared<sphere>(point3( 5.0, 5.0, 5.0), 5.0, material_light));
-    objects.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
-    objects.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
-    objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
-    objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   -0.45, material_right));
-    objects.add(make_shared<sphere>(point3( 2.0,    0.0, -1.0),   0.5, material_rightmost));
-    objects.add(make_shared<sphere>(point3( 1.5,    0.0, -1.0-sqrt(3)/2),   0.5, material_last));
+    // objects.add(make_shared<sphere>(point3( 0.0, -100.5, -1.0), 100.0, material_ground));
+    // // objects.add(make_shared<sphere>(point3( 5.0, 5.0, 5.0), 5.0, material_light));
+    // objects.add(make_shared<sphere>(point3( 0.0,    0.0, -1.0),   0.5, material_center));
+    // objects.add(make_shared<sphere>(point3(-1.0,    0.0, -1.0),   0.5, material_left));
+    // objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   0.5, material_right));
+    // objects.add(make_shared<sphere>(point3( 1.0,    0.0, -1.0),   -0.45, material_right));
+    // objects.add(make_shared<sphere>(point3( 2.0,    0.0, -1.0),   0.5, material_rightmost));
+    // objects.add(make_shared<sphere>(point3( 1.5,    0.0, -1.0-sqrt(3)/2),   0.5, material_last));
+
+    hittable_list objects = random_scene();
+
 
 	// CAMERA
     // point3 lookfrom(1,1,2.5);
-    point3 lookfrom(-2,2,1);
+    point3 lookfrom(13,2,3);
     // point3 lookat(1,0,-1);
-    point3 lookat(0,0,-1);
-    double aperture = 0;
-    camera cam(lookfrom, lookat, vec3(0,1,0), 50, aspect_ratio, aperture);
+    point3 lookat(0, 1, 0);
+    double aperture = 0.1;
+    camera cam(lookfrom, lookat, vec3(0,1,0), 20, aspect_ratio, aperture);
 
     int sample = 1;
 
@@ -205,5 +254,5 @@ int main() {
 
     // clean up
     win.shutdown();
-    pool.stop();
+    // pool.stop();
 }

@@ -19,7 +19,7 @@ public:
     lambertian(const color& a): albedo(a) {}
 
     virtual bool scatter(const ray& r, const hit_record& rec, color& attenuation, ray& scattered) const override {
-        auto dir = rec.normal + random_unit_vector()*random_scatter_scalar;
+        auto dir = rec.normal + random_unit_vector();
         if (dir.near_zero()) dir = rec.normal;
         scattered = ray(rec.p, dir);
         attenuation = albedo;
@@ -36,7 +36,7 @@ public:
 
     virtual bool scatter(const ray& r, const hit_record& rec, color& attenuation, ray& scattered) const override {
         auto reflection = reflect(r.direction(), rec.normal);
-        scattered = ray(rec.p, reflection + fuzz*random_in_unit_sphere()*random_scatter_scalar);
+        scattered = ray(rec.p, reflection + fuzz*random_in_unit_sphere());
         attenuation = albedo;
         return (dot(scattered.direction(), rec.normal) > 0);
     }
